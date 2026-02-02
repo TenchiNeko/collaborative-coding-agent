@@ -1,0 +1,12 @@
+# Core dependencies
+requests>=2.31.0
+pyyaml>=6.0.1
+urllib3>=2.0.0
+
+# Optional but recommended
+pytest>=7.4.0  # For auto-testing feature
+
+# Development dependencies (optional)
+# black>=23.0.0  # Code formatting
+# flake8>=6.0.0  # Linting
+# mypy>=1.0.0    # Type checking
