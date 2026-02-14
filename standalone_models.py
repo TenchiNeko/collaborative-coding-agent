@@ -38,7 +38,7 @@ class DoD:
     """Definition of Done — collection of success criteria."""
     criteria: List[DoDCriterion] = field(default_factory=list)
 
-    def add(self, description: str, method: str = "test", command: str = None) -> str:
+    def add(self, description: str, method: str = "test", command: Optional[str] = None) -> str:
         cid = f"criterion-{len(self.criteria)}"
         self.criteria.append(DoDCriterion(
             id=cid, description=description,
@@ -46,7 +46,7 @@ class DoD:
         ))
         return cid
 
-    def mark_passed(self, criterion_id: str, evidence: str = None):
+    def mark_passed(self, criterion_id: str, evidence: Optional[str] = None):
         for c in self.criteria:
             if c.id == criterion_id:
                 c.passed = True

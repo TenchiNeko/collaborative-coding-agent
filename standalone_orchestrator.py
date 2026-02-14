@@ -12,11 +12,11 @@ import uuid
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, List, Optional, Set
 
 from standalone_config import Config
 from standalone_session import SessionManager
-from standalone_models import TaskState, ExecutionPhase, IterationResult
+from standalone_models import TaskState, ExecutionPhase, IterationResult, AgentResult
 from standalone_agents import AgentRunner
 from standalone_memory import ConversationMemory
 from standalone_trace_collector import TraceCollector
@@ -1841,7 +1841,7 @@ Fix the specific errors above. Keep the overall structure if it compiles.
             {"exists": False, "status": "ALL CANDIDATES FAILED", "exports": "none"}
         )
 
-    def _generate_spec_test(self, task_state: TaskState, step: dict, total_steps: int, source_files: list = None) -> bool:
+    def _generate_spec_test(self, task_state: TaskState, step: dict, total_steps: int, source_files: Optional[list] = None) -> bool:
         """
         v0.8.2: Generate a test file from the SPEC ONLY — no source code visible.
 
@@ -2863,7 +2863,7 @@ Use write_file to create {filename}.
             if tp_injected:
                 # Deduplicate (e.g., multiple Flask imports → one `from flask import X, Y`)
                 # Group by source module
-                module_imports = {}  # {module: [names]}
+                module_imports: Dict[str, list] = {}  # {module: [names]}
                 standalone_imports = []
                 for stmt in tp_injected:
                     m = re_mod.match(r'from\s+(\S+)\s+import\s+(.+)', stmt)
@@ -3191,7 +3191,7 @@ Use write_file to create {filename}.
                 failed=failed,
                 errors=errors,
                 error_category=self._classify_test_error(error_output),
-                model_used=self.config.get_agent("build").model or "unknown",
+                model_used=self.config.get_agent("build").model.model_id,
                 temperature=temp,
                 iteration=task_state.iteration,
                 task_goal=task_state.goal or "",
@@ -3513,7 +3513,7 @@ Do NOT rewrite from scratch. Start from this code and fix the failing parts.
                     failed=failed,
                     errors=errors,
                     error_category=self._classify_test_error(w2_error_output),
-                    model_used=self.config.get_agent("build").model or "unknown",
+                    model_used=self.config.get_agent("build").model.model_id,
                     temperature=temp,
                     iteration=task_state.iteration,
                     task_goal=task_state.goal or "",
@@ -3761,7 +3761,7 @@ Do NOT rewrite from scratch. Start from this code and fix the failing parts.
             logger.info("  🛡️ RCA VETO: deterministic fix applied (skipped LLM RCA)")
         else:
             # Try LLM-based RCA
-            rca_result = self.agent_runner.run_rca(task_state, result)
+            rca_result: Optional[Dict[str, Any]] = self.agent_runner.run_rca(task_state, result)
 
             # v0.7.3: Post-RCA filters to prevent hallucination spirals
             if rca_result:
@@ -4032,10 +4032,10 @@ Do NOT rewrite from scratch. Start from this code and fix the failing parts.
         import re
 
         trivial_categories = {"name_error", "import_error", "syntax_error", "attribute_error", "flask_context_error"}
-        concrete_edits = []
-        why_chain = []
+        concrete_edits: List[Dict[str, str]] = []
+        why_chain: List[str] = []
         found_any_trivial = False
-        seen_files = set()  # Deduplicate edits per file
+        seen_files: Set[str] = set()  # Deduplicate edits per file
 
         for cid, res in result.dod_results.items():
             if not isinstance(res, dict) or res.get("passed"):
@@ -4213,7 +4213,8 @@ Do NOT rewrite from scratch. Start from this code and fix the failing parts.
 
         # v0.9.0: Run librarian to curate this session's knowledge
         if self.librarian:
-            init_librarian_tables(self.librarian_db_path)  # Ensure tables exist
+            if self.librarian_db_path:
+                init_librarian_tables(self.librarian_db_path)
             try:
                 summary = build_session_summary(
                     task_state=task_state,
@@ -4252,7 +4253,8 @@ Do NOT rewrite from scratch. Start from this code and fix the failing parts.
 
         # v0.9.0: Run librarian even on failures — lessons from failures are valuable
         if self.librarian:
-            init_librarian_tables(self.librarian_db_path)  # Ensure tables exist
+            if self.librarian_db_path:
+                init_librarian_tables(self.librarian_db_path)
             try:
                 summary = build_session_summary(
                     task_state=task_state,
@@ -4349,7 +4351,7 @@ python3 standalone_main.py --resume
             logger.warning(f"⚠️ Backup failed (continuing anyway): {e}")
             return None
 
-    def restore_backup(self, backup_name: str = None):
+    def restore_backup(self, backup_name: Optional[str] = None):
         """
         Restore from the most recent backup (or a specific one).
 

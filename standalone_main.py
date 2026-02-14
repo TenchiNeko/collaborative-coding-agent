@@ -12,12 +12,13 @@ import sys
 import argparse
 import logging
 from pathlib import Path
+from typing import Optional
 
 from standalone_config import load_config
 from standalone_orchestrator import Orchestrator
 
 
-def setup_logging(verbose: bool = False, log_file: Path = None):
+def setup_logging(verbose: bool = False, log_file: Optional[Path] = None):
     """Configure logging with colors."""
     level = logging.DEBUG if verbose else logging.INFO
 
