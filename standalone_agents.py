@@ -24,7 +24,7 @@ from typing import Optional, List, Dict, Any
 import requests
 
 from standalone_config import Config, AgentConfig, ModelConfig
-from standalone_models import TaskState, AgentResult, DoD, DoDCriterion, IterationResult
+from standalone_models import TaskState, AgentResult, DoD, IterationResult
 from playbook_reader import PlaybookReader
 
 logger = logging.getLogger(__name__)
@@ -1051,7 +1051,7 @@ class LLMClient:
         except requests.exceptions.ConnectionError as e:
             raise ConnectionError(f"Cannot connect to Ollama at {endpoint}: {e}")
         except requests.exceptions.Timeout:
-            raise TimeoutError(f"Ollama request timed out after 900s")
+            raise TimeoutError("Ollama request timed out after 900s")
         except Exception as e:
             raise RuntimeError(f"Ollama API error: {e}")
 
@@ -1629,7 +1629,6 @@ IMPORTANT:
         This runs before any LLM agent touches the project, so the build
         agent never wastes rounds on 'git init' or 'pip install pytest'.
         """
-        import shutil
 
         wd = self.working_dir
 
@@ -3190,7 +3189,7 @@ Produce SEARCH/REPLACE edits to fix the failing tests.
                         req = "optional" if has_default else "REQUIRED"
                         lines.append(f"  - {name}: {ftype}  [{req}]")
                     field_names = ', '.join(name for name, _, _ in dc_fields)
-                    lines.append(f"  ⚠️ Do NOT use 'id', 'payload', 'name', or any other param names.")
+                    lines.append("  ⚠️ Do NOT use 'id', 'payload', 'name', or any other param names.")
                     lines.append(f"     Use EXACTLY: {field_names}")
 
             methods = []
@@ -3318,6 +3317,10 @@ If a method takes args, call it with those args: `obj.method(arg1, arg2)`
         if not classes and not functions:
             return ""
 
+        # Detect module type
+        is_storage = any(kw in source_module.lower() for kw in ["storage", "store", "repo", "db"])
+        is_flask = "Flask(" in source_content or "from flask import" in source_content
+        is_cli = not is_flask and any(kw in source_module.lower() for kw in ["cli", "main", "app"])
         # Build import line
         importable_names = [c['name'] for c in classes] + functions
         import_line = f"from {source_module} import {', '.join(importable_names)}"
@@ -3325,11 +3328,6 @@ If a method takes args, call it with those args: `obj.method(arg1, arg2)`
         # For Flask apps, import the app object — NOT route functions
         if is_flask:
             import_line = f"from {source_module} import app"
-
-        # Detect module type
-        is_storage = any(kw in source_module.lower() for kw in ['storage', 'store', 'repo', 'db'])
-        is_flask = 'Flask(' in source_content or 'from flask import' in source_content
-        is_cli = not is_flask and any(kw in source_module.lower() for kw in ['cli', 'main', 'app'])
 
         # Build the template
         template_lines = [
@@ -3403,36 +3401,36 @@ If a method takes args, call it with those args: `obj.method(arg1, arg2)`
 
             template_lines.extend([
                 "",
-                f"    def test_save_and_load_roundtrip(self):",
-                f"        with tempfile.TemporaryDirectory() as d:",
-                f"            path = Path(d) / 'data.json'",
+                "    def test_save_and_load_roundtrip(self):",
+                "        with tempfile.TemporaryDirectory() as d:",
+                "            path = Path(d) / 'data.json'",
                 f"            store = {storage_class}(path)",
             ])
 
             if has_add_task:
                 # Use add_task method (manages internal state)
                 template_lines.extend([
-                    f"            # Use the add_task method to add items (it calls save internally)",
-                    f"            # store.add_task(Task(id='1', title='Test', status='pending', created_at=datetime.now().isoformat()))",
-                    f"            # Then reload and verify:",
+                    "            # Use the add_task method to add items (it calls save internally)",
+                    "            # store.add_task(Task(id='1', title='Test', status='pending', created_at=datetime.now().isoformat()))",
+                    "            # Then reload and verify:",
                     f"            # store2 = {storage_class}(path)",
-                    f"            # self.assertEqual(len(store2.tasks), 1)",
-                    f"            pass  # Replace with actual test logic",
+                    "            # self.assertEqual(len(store2.tasks), 1)",
+                    "            pass  # Replace with actual test logic",
                 ])
             elif save_takes_args:
                 # save_tasks takes a list argument
                 template_lines.extend([
-                    f"            # save_tasks takes a list argument:",
-                    f"            # store.save_tasks([task1, task2])",
-                    f"            pass  # Replace with actual test logic",
+                    "            # save_tasks takes a list argument:",
+                    "            # store.save_tasks([task1, task2])",
+                    "            pass  # Replace with actual test logic",
                 ])
             else:
                 # save_tasks uses self.tasks (no args)
                 template_lines.extend([
-                    f"            # save_tasks() uses internal self.tasks — NO arguments:",
-                    f"            # store.tasks.append(task)",
-                    f"            # store.save_tasks()  # <-- NO args!",
-                    f"            pass  # Replace with actual test logic",
+                    "            # save_tasks() uses internal self.tasks — NO arguments:",
+                    "            # store.tasks.append(task)",
+                    "            # store.save_tasks()  # <-- NO args!",
+                    "            pass  # Replace with actual test logic",
                 ])
         elif is_flask:
             # v0.7.4: Flask test template — uses test_client, NEVER calls routes directly
@@ -3446,12 +3444,12 @@ If a method takes args, call it with those args: `obj.method(arg1, arg2)`
 
             template_lines.extend([
                 "",
-                f"    def setUp(self):",
-                f"        app.config['TESTING'] = True",
-                f"        self.client = app.test_client()",
-                f"        # Set up test database if needed:",
-                f"        # with tempfile.TemporaryDirectory() as d:",
-                f"        #     app.config['DATABASE_PATH'] = Path(d) / 'test.db'",
+                "    def setUp(self):",
+                "        app.config['TESTING'] = True",
+                "        self.client = app.test_client()",
+                "        # Set up test database if needed:",
+                "        # with tempfile.TemporaryDirectory() as d:",
+                "        #     app.config['DATABASE_PATH'] = Path(d) / 'test.db'",
             ])
 
             if routes:
@@ -3469,48 +3467,48 @@ If a method takes args, call it with those args: `obj.method(arg1, arg2)`
                                 "",
                                 f"    def test_{method_lower}_{test_name}(self):",
                                 f"        response = self.client.post('{route_path}', json={{",
-                                f"            # Add required fields here",
-                                f"        }})",
-                                f"        self.assertIn(response.status_code, [200, 201])",
-                                f"        data = response.get_json()",
-                                f"        self.assertIsNotNone(data)",
+                                "            # Add required fields here",
+                                "        })",
+                                "        self.assertIn(response.status_code, [200, 201])",
+                                "        data = response.get_json()",
+                                "        self.assertIsNotNone(data)",
                             ])
                         elif method_lower == 'get':
                             template_lines.extend([
                                 "",
                                 f"    def test_{method_lower}_{test_name}(self):",
                                 f"        response = self.client.get('{route_path}')",
-                                f"        self.assertEqual(response.status_code, 200)",
-                                f"        data = response.get_json()",
-                                f"        self.assertIsNotNone(data)",
+                                "        self.assertEqual(response.status_code, 200)",
+                                "        data = response.get_json()",
+                                "        self.assertIsNotNone(data)",
                             ])
                         elif method_lower == 'delete':
                             template_lines.extend([
                                 "",
                                 f"    def test_{method_lower}_{test_name}(self):",
-                                f"        # First create an item, then delete it",
+                                "        # First create an item, then delete it",
                                 f"        response = self.client.delete('{route_path}')",
-                                f"        self.assertIn(response.status_code, [200, 204])",
+                                "        self.assertIn(response.status_code, [200, 204])",
                             ])
             else:
                 # No routes found, give generic Flask test scaffold
                 template_lines.extend([
                     "",
-                    f"    def test_health(self):",
-                    f"        response = self.client.get('/')",
-                    f"        self.assertEqual(response.status_code, 200)",
+                    "    def test_health(self):",
+                    "        response = self.client.get('/')",
+                    "        self.assertEqual(response.status_code, 200)",
                 ])
 
         elif is_cli and 'main' in functions:
             # CLI test template with injectable main()
             template_lines.extend([
                 "",
-                f"    def test_cli_add(self):",
-                f"        with tempfile.TemporaryDirectory() as d:",
-                f"            path = Path(d) / 'data.json'",
-                f"            # TODO: Call main() with injectable argv and storage",
-                f"            # main(argv=['add', 'Test Item'], storage=TempStorage(path))",
-                f"            pass  # Replace with actual test call",
+                "    def test_cli_add(self):",
+                "        with tempfile.TemporaryDirectory() as d:",
+                "            path = Path(d) / 'data.json'",
+                "            # TODO: Call main() with injectable argv and storage",
+                "            # main(argv=['add', 'Test Item'], storage=TempStorage(path))",
+                "            pass  # Replace with actual test call",
             ])
         else:
             # Generic test template
@@ -3532,17 +3530,17 @@ If a method takes args, call it with those args: `obj.method(arg1, arg2)`
                             param_strs.append(f"{name}='test'")
                     params = ', '.join(param_strs)
                     template_lines.append(f"        obj = {cls['name']}({params})")
-                    template_lines.append(f"        self.assertIsNotNone(obj)")
+                    template_lines.append("        self.assertIsNotNone(obj)")
                 else:
                     template_lines.append(f"        obj = {cls['name']}()")
-                    template_lines.append(f"        self.assertIsNotNone(obj)")
+                    template_lines.append("        self.assertIsNotNone(obj)")
 
             for func in functions[:3]:
                 template_lines.extend([
                     "",
                     f"    def test_{func}(self):",
                     f"        # TODO: Call {func}() with appropriate args",
-                    f"        pass  # Replace with actual test",
+                    "        pass  # Replace with actual test",
                 ])
 
         template_lines.extend([
@@ -4023,7 +4021,7 @@ Perform a 5 Whys analysis. What is the SPECIFIC root cause? What SPECIFIC change
                 all_evidence.append(f"{cid}: BLOCKED — syntax error in {', '.join(syntax_errors.keys())}")
 
             output = f"SYNTAX ERRORS FOUND — all criteria blocked:\n{error_summary}"
-            output += f"\n\nDOD VERIFICATION FAILED\nFailed: all (source files have syntax errors)"
+            output += "\n\nDOD VERIFICATION FAILED\nFailed: all (source files have syntax errors)"
 
             return AgentResult(
                 success=False,
@@ -4104,7 +4102,7 @@ Perform a 5 Whys analysis. What is the SPECIFIC root cause? What SPECIFIC change
             tests_passed = all_tests_pass
             test_result_output = "\n".join(combined_output)
         else:
-            test_command = f"python3 -m unittest discover -s . -p 'test_*.py' -v"
+            test_command = "python3 -m unittest discover -s . -p 'test_*.py' -v"
             test_result_output = self.tool_executor.execute(
                 "run_command", {"command": test_command, "timeout": 120}
             )

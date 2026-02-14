@@ -15,9 +15,7 @@ Tables 1-2 remain managed by the existing kb_store.py system.
 import sqlite3
 import json
 import logging
-from datetime import datetime
-from typing import Optional, List, Dict, Any
-from pathlib import Path
+from typing import List, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +34,10 @@ def get_db(db_path: str = DEFAULT_DB_PATH) -> sqlite3.Connection:
 def init_librarian_tables(db_path: str = DEFAULT_DB_PATH):
     """
     Create the journal and snippets tables + FTS indexes.
-    
+
     Safe to call multiple times — uses IF NOT EXISTS.
     Run this once at startup or after upgrading from v0.8.x.
-    
+
     v0.9.5: Split into individual statements with error handling.
     executescript() silently aborts on error, so if the journal FTS
     trigger had any issue, the snippets table was never created.
@@ -162,16 +160,16 @@ def init_librarian_tables(db_path: str = DEFAULT_DB_PATH):
     tables = {r[0] for r in conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table'"
     ).fetchall()}
-    
+
     missing = []
     if 'journal' not in tables:
         missing.append('journal')
     if 'snippets' not in tables:
         missing.append('snippets')
-    
+
     if missing:
         logger.error(f"LIBRARIAN INIT FAILED: missing tables: {missing}")
-    
+
     conn.close()
     logger.info(f"✓ Librarian tables initialized in {db_path}"
                 f" (journal={'✅' if 'journal' in tables else '❌'}"
@@ -346,7 +344,7 @@ def get_session_context(
 ) -> str:
     """
     Main entry point for the orchestrator's planning phase.
-    
+
     Queries journal + snippets and returns formatted context
     to inject into the 70B's planning prompt.
     """

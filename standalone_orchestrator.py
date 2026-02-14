@@ -8,17 +8,15 @@ Zero dependency on opencode or any external CLI agent tools.
 """
 
 import subprocess
-import json
 import uuid
 import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
-from dataclasses import asdict
 
 from standalone_config import Config
 from standalone_session import SessionManager
-from standalone_models import TaskState, ExecutionPhase, DoD, IterationResult
+from standalone_models import TaskState, ExecutionPhase, IterationResult
 from standalone_agents import AgentRunner
 from standalone_memory import ConversationMemory
 from standalone_trace_collector import TraceCollector
@@ -150,7 +148,7 @@ class Orchestrator:
 
     def run(self, goal: str, resume: bool = False) -> bool:
         logger.info(f"{'='*60}")
-        logger.info(f"ORCHESTRATOR STARTING")
+        logger.info("ORCHESTRATOR STARTING")
         logger.info(f"Task: {goal}")
         logger.info(f"Working directory: {self.working_dir}")
         logger.info(f"Max iterations: {self.max_iterations}")
@@ -161,7 +159,7 @@ class Orchestrator:
                 logger.info(f"Knowledge Base: ✅ {kb_stats.get('patterns', 0)} patterns, "
                            f"{kb_stats.get('docs', 0)} doc chunks")
         else:
-            logger.info(f"Knowledge Base: ⚠️ not available (running without KB)")
+            logger.info("Knowledge Base: ⚠️ not available (running without KB)")
         # v0.9.0: Librarian status
         if self.librarian:
             try:
@@ -631,7 +629,7 @@ class Orchestrator:
         return dependents
 
     def _run_micro_builds(self, task_state: TaskState, sequence: list,
-                          memory_context: str = "", rca_edits_context: str = "") -> 'AgentResult':
+                          memory_context: str = "", rca_edits_context: str = "") -> 'tuple':
         """
         Execute sequential micro-builds: one file at a time with verification.
 
@@ -870,7 +868,6 @@ class Orchestrator:
             logger.debug(f"  Post-build import resolution failed (non-fatal): {e}")
 
         # Git commit all micro-builds together
-        import subprocess
         try:
             self._safe_run(
                 ["git", "add", "-A"],
@@ -905,7 +902,7 @@ class Orchestrator:
     def _extract_blamed_source_files(self, test_output: str, test_filename: str) -> set:
         """
         v0.8.0: Parse pytest traceback to find source files that caused the failure.
-        
+
         When test_app.py fails with 'database.py:19: ProgrammingError', the bug
         is in database.py, not test_app.py. Returns set of source filenames.
         """
@@ -1023,7 +1020,6 @@ class Orchestrator:
 
         # Syntax check
         if filename.endswith('.py'):
-            import subprocess
             result = self._safe_run(
                 ["python3", "-c", f"import py_compile; py_compile.compile('{filepath}', doraise=True)"],
                 capture_output=True, text=True, timeout=10,
@@ -1289,7 +1285,7 @@ class Orchestrator:
         """Export collected traces at the end of a run."""
         stats = self.trace_collector.get_session_stats()
         if stats["total"] > 0:
-            logger.info(f"\n📝 Trace Collection Summary:")
+            logger.info("\n📝 Trace Collection Summary:")
             logger.info(f"  Test failures: {stats['test_failures']}")
             logger.info(f"  Build failures: {stats['build_failures']}")
             logger.info(f"  RCA failures: {stats['rca_failures']}")
@@ -1862,7 +1858,7 @@ Fix the specific errors above. Keep the overall structure if it compiles.
 
         system_prompt = self.agent_runner._load_prompt("prompts/test_gen.txt")
         if not system_prompt:
-            logger.warning(f"  No test_gen.txt prompt found, falling back to normal sampling")
+            logger.warning("  No test_gen.txt prompt found, falling back to normal sampling")
             return False
 
         # KB context for test patterns
@@ -1910,7 +1906,6 @@ Use write_file to create {filename}.
             if filepath.exists():
                 content = filepath.read_text()
                 # Verify syntax
-                import subprocess
                 check = self._safe_run(
                     ["python3", "-m", "py_compile", filename],
                     cwd=str(self.working_dir),
@@ -1948,9 +1943,9 @@ Use write_file to create {filename}.
                 fixture_code = (
                     "\n@pytest.fixture\n"
                     "def client():\n"
-                    f"    app.config['TESTING'] = True\n"
-                    f"    with app.test_client() as client:\n"
-                    f"        yield client\n\n"
+                    "    app.config['TESTING'] = True\n"
+                    "    with app.test_client() as client:\n"
+                    "        yield client\n\n"
                 )
                 # Insert after the import lines
                 lines = content.split('\n')
@@ -1966,7 +1961,7 @@ Use write_file to create {filename}.
 
     def _fix_test_imports(self, test_path, source_files):
         """Fix hallucinated imports in generated test files.
-        
+
         The 14B LoRA often invents module names like 'tracker' when the actual
         file is 'app.py'. This rewrites bad imports to use the real filenames.
         """
@@ -1974,7 +1969,7 @@ Use write_file to create {filename}.
         content = test_path.read_text()
         source_modules = {f.replace('.py', '') for f in source_files}
         changed = False
-        
+
         lines = content.split('\n')
         new_lines = []
         for line in lines:
@@ -2012,7 +2007,7 @@ Use write_file to create {filename}.
                         line = f"{prefix}{best_match}{suffix}"
                         changed = True
             new_lines.append(line)
-        
+
         if changed:
             test_path.write_text('\n'.join(new_lines))
 
@@ -2999,8 +2994,8 @@ Use write_file to create {filename}.
                 # Simpler: just ensure any bare datetime( becomes datetime.datetime(
                 # where it's clearly a constructor call
                 content = re_mod.sub(
-                    r'(?<!\.)(?<!datetime\.)(?<!from )(?<!import )datetime\(', 
-                    'datetime.datetime(', 
+                    r'(?<!\.)(?<!datetime\.)(?<!from )(?<!import )datetime\(',
+                    'datetime.datetime(',
                     content
                 )
                 changed = True
@@ -3259,7 +3254,7 @@ Use write_file to create {filename}.
                     verification = self._verify_single_file(filename, True)
                     verification["status"] = "OK"
                     verification["test_results"] = f"{edit_passed}/{edit_passed} tests pass"
-                    return AgentResult(success=True, output=f"Edit repair: all pass"), verification
+                    return AgentResult(success=True, output="Edit repair: all pass"), verification
 
                 logger.info(f"    🔧 Edit round {edit_round + 1}/3: {edit_passed} pass, {edit_failed} fail, {edit_errors} error")
 
@@ -3333,7 +3328,7 @@ Use write_file to create {filename}.
                 verification = self._verify_single_file(filename, True)
                 verification["status"] = "OK"
                 verification["test_results"] = f"{final_passed}/{final_passed} tests pass"
-                return AgentResult(success=True, output=f"Edit repair: all pass"), verification
+                return AgentResult(success=True, output="Edit repair: all pass"), verification
 
             # Update best if edits improved things
             if final_passed > best_score:
@@ -3427,7 +3422,7 @@ Do NOT rewrite from scratch. Start from this code and fix the failing parts.
                     pf_output = preflight_w2.get("output", "")
                     if "unexpected keyword argument" in pf_output:
                         if self._auto_fix_test_type_errors(filepath, pf_output):
-                            logger.info(f"    🔧 Wave2 pre-flight: fixed constructor kwargs")
+                            logger.info("    🔧 Wave2 pre-flight: fixed constructor kwargs")
 
                 test_result = self._run_test_file(filename, tests_for)
                 passed = test_result.get("passed", 0)
@@ -3562,7 +3557,6 @@ Do NOT rewrite from scratch. Start from this code and fix the failing parts.
 
         Returns dict with: passed, failed, errors, output
         """
-        import subprocess
         import re
 
         # v0.7.4: Clean test artifacts before running to ensure clean slate.
@@ -3654,7 +3648,6 @@ Do NOT rewrite from scratch. Start from this code and fix the failing parts.
         Returns: {filename: content_string} for each passing file
         """
         snapshots = {}
-        import subprocess
 
         for pyfile in self.working_dir.glob("*.py"):
             filename = pyfile.name
@@ -3685,7 +3678,6 @@ Do NOT rewrite from scratch. Start from this code and fix the failing parts.
         After a retry build, check if any previously-passing files now have
         syntax errors or import failures. If so, restore the snapshot.
         """
-        import subprocess
         rolled_back = []
 
         for filename, original_content in snapshots.items():
@@ -3877,7 +3869,6 @@ Do NOT rewrite from scratch. Start from this code and fix the failing parts.
         If the same root cause has been proposed 2+ times and hasn't fixed
         anything, the RCA is wrong. Redirect to "regenerate test files" instead.
         """
-        import re
         concrete_edits = rca_result.get("concrete_edits", [])
         filtered_edits = []
         eq_filtered = False
@@ -3993,7 +3984,7 @@ Do NOT rewrite from scratch. Start from this code and fix the failing parts.
                         filtered_edits.append({
                             "file": tf,
                             "action": "fix_imports",
-                            "details": f"The test file has import/name errors. Read the source module and fix the imports."
+                            "details": "The test file has import/name errors. Read the source module and fix the imports."
                         })
 
             rca_result["root_cause"] = "Test files have import errors (not source module issues)"
@@ -4098,7 +4089,7 @@ Do NOT rewrite from scratch. Start from this code and fix the failing parts.
                     concrete_edits.append({
                         "file": target_file,
                         "action": "fix_name_error_imports",
-                        "details": f"Add missing imports required by the traceback (e.g., uuid, datetime). Keep changes minimal."
+                        "details": "Add missing imports required by the traceback (e.g., uuid, datetime). Keep changes minimal."
                     })
                 elif error_cat == "import_error":
                     why_chain.append(f"{target_file}: ImportError (bad module path)")
@@ -4112,7 +4103,7 @@ Do NOT rewrite from scratch. Start from this code and fix the failing parts.
                     concrete_edits.append({
                         "file": target_file,
                         "action": "fix_syntax",
-                        "details": f"Fix the exact syntax error shown by py_compile/traceback."
+                        "details": "Fix the exact syntax error shown by py_compile/traceback."
                     })
                 elif error_cat == "attribute_error":
                     why_chain.append(f"{target_file}: AttributeError (wrong method/attribute)")

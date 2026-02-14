@@ -7,9 +7,9 @@ It injects the most relevant bullets into agent system prompts.
 
 Usage in standalone_orchestrator.py:
     from playbook_reader import PlaybookReader
-    
+
     reader = PlaybookReader("/shared/playbook.json")
-    
+
     # In agent call:
     extra_context = reader.get_context_for_agent("builder", task_goal)
     system_prompt = base_system_prompt + "\n\n" + extra_context
@@ -19,7 +19,7 @@ import json
 import logging
 import math
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import Optional, List
 
 logger = logging.getLogger(__name__)
 
@@ -70,13 +70,13 @@ class PlaybookReader:
                               max_bullets: int = 25, max_chars: int = 3000) -> str:
         """
         Get playbook context formatted for injection into an agent's system prompt.
-        
+
         Args:
             role: Agent role (planner, builder, test_gen, etc.)
             task_goal: Current task description (for future relevance scoring)
             max_bullets: Maximum number of bullets to include
             max_chars: Maximum character count for the context block
-            
+
         Returns:
             Formatted text block to append to system prompt, or empty string.
         """
@@ -145,7 +145,7 @@ class PlaybookReader:
         """
         Report which bullets were in context during a session.
         Writes to a feedback file that the daemon picks up.
-        
+
         Called by the orchestrator after a session completes.
         """
         feedback_dir = self.path.parent / "daemon" / "feedback"

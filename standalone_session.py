@@ -8,9 +8,8 @@ import json
 import subprocess
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
 
-from standalone_models import TaskState, ExecutionPhase
+from standalone_models import TaskState
 
 import logging
 logger = logging.getLogger(__name__)
@@ -104,7 +103,7 @@ class SessionManager:
 
     def build_session_context(self, state: TaskState) -> str:
         parts = [
-            f"## Session Context",
+            "## Session Context",
             f"**Task ID:** {state.task_id}",
             f"**Goal:** {state.goal}",
             f"**Iteration:** {state.iteration}",

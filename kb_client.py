@@ -29,13 +29,13 @@ class KBClient:
 
     Usage:
         kb = KBClient(server_url="http://localhost:8787")
-        
+
         # Proactive: get patterns relevant to what we're building
         context = kb.get_build_context("Flask API with SQLite")
-        
+
         # Reactive: get fix suggestions for a specific error
         fix = kb.get_fix_for_error("NameError: name 'uuid' is not defined")
-        
+
         # Auto-capture: save a new error→solution pattern
         kb.capture_pattern(error_text, solution_text, example_code)
     """
@@ -193,7 +193,7 @@ class KBClient:
         AUTO-CAPTURE: Save a new error→solution pattern to the KB.
 
         Called when Wave 2 successfully fixes an error that Wave 1 couldn't.
-        
+
         Returns True if pattern was saved successfully.
         """
         if not self.is_available():
@@ -250,7 +250,7 @@ class KBClient:
     def _extract_error_query(self, error_text: str) -> str:
         """
         Extract the most searchable error string from raw test/compile output.
-        
+
         Priorities:
         1. Python exception lines (NameError, ImportError, etc.)
         2. Assertion errors with context
