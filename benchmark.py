@@ -15,10 +15,9 @@ import os
 import subprocess
 import sys
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 # ---------------------------------------------------------------------------
 # Benchmark task definitions (ordered by difficulty level)
@@ -209,7 +208,6 @@ def _parse_log(output: str, result: BenchmarkResult) -> BenchmarkResult:
         result.iterations = max(int(i) for i in iteration_matches)
 
     # DoD
-    dod_match = re.search(r"DoD final count: (\d+)/(\d+)", output)
     # Get the LAST DoD match (final iteration)
     dod_matches = re.findall(r"DoD final count: (\d+)/(\d+)", output)
     if dod_matches:

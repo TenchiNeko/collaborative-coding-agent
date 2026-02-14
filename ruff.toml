@@ -1,0 +1,10 @@
+line-length = 120
+
+[lint]
+select = ["E", "F", "W"]
+ignore = [
+    "E501",   # line too long (existing code)
+    "E741",   # ambiguous variable names (fix over time)
+    "F841",   # unused variables (fix over time)
+    "W605",   # invalid escape sequence
+]

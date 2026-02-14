@@ -271,7 +271,7 @@ class KBClient:
                 return match.group(1).strip()[:200]
 
         # Fall back to last non-empty line (often the actual error)
-        lines = [l.strip() for l in error_text.strip().split("\n") if l.strip()]
+        lines = [line.strip() for line in error_text.strip().split("\n") if line.strip()]
         if lines:
             # Skip "EXIT_CODE" lines
             for line in reversed(lines):
