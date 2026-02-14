@@ -1084,15 +1084,15 @@ class Orchestrator:
     @staticmethod
     def _find_safe_import_line(source: str) -> int:
         """Find the 0-indexed line number after the last top-level import.
-        
+
         v1.1: AST-guarded import insertion. Fixes the bug where imports
         inside try/except, functions, or if blocks were treated as
         insertion points, causing SyntaxError when new imports were
         injected inside those blocks.
-        
+
         Uses ast.parse() to identify only module-level imports.
         Falls back to indentation-aware line scanning if parsing fails.
-        
+
         Returns: 0-indexed line number where a new import should be inserted.
         """
         import ast as _ast
@@ -1109,7 +1109,7 @@ class Orchestrator:
             return last_import_line
         except SyntaxError:
             pass
-        
+
         # Strategy 2: Indentation-aware scan (fallback for broken files)
         lines = source.split('\n')
         last_toplevel_import = 0
