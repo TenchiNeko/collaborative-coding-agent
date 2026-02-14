@@ -17,7 +17,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install ruff mypy httpx
+        run: pip install ruff mypy httpx types-requests
 
       - name: Lint with ruff
         run: ruff check standalone_*.py librarian*.py kb_client.py playbook_reader.py benchmark.py
