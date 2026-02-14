@@ -21,7 +21,7 @@ import logging
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-import requests
+import requests  # type: ignore[import-untyped]
 
 from standalone_config import Config, AgentConfig, ModelConfig
 from standalone_models import TaskState, AgentResult, DoD, IterationResult
@@ -1324,7 +1324,7 @@ class AgentRunner:
                     if agent_config.model.provider == "anthropic":
                         messages.append({
                             "role": "user",
-                            "content": [{
+                            "content": [{  # type: ignore[dict-item]
                                 "type": "tool_result",
                                 "tool_use_id": tc.get("id", ""),
                                 "content": tool_result
@@ -3375,7 +3375,7 @@ If a method takes args, call it with those args: `obj.method(arg1, arg2)`
             # Extract method signatures to generate correct test calls
             import re as re_mod
             class_body_match = re_mod.search(
-                rf'^class\s+{re_mod.escape(storage_class)}.*?(?=\nclass\s|\Z)',
+                rf'^class\s+{re_mod.escape(storage_class)}.*?(?=\nclass\s|\Z)',  # type: ignore[type-var]
                 source_content, re_mod.MULTILINE | re_mod.DOTALL
             )
             class_body = class_body_match.group(0) if class_body_match else ""
@@ -3515,11 +3515,11 @@ If a method takes args, call it with those args: `obj.method(arg1, arg2)`
             for cls in classes[:2]:
                 template_lines.extend([
                     "",
-                    f"    def test_{cls['name'].lower()}_creation(self):",
+                    f"    def test_{cls['name'].lower()}_creation(self):",  # type: ignore[union-attr]
                 ])
                 if cls['init_params']:
                     param_strs = []
-                    for name, ptype in cls['init_params'][:4]:
+                    for name, ptype in cls['init_params'][:4]:  # type: ignore[misc, index]
                         if ptype in ('str', 'String'):
                             param_strs.append(f"{name}='test'")
                         elif ptype in ('int', 'Integer', 'float'):
@@ -4121,7 +4121,7 @@ Perform a 5 Whys analysis. What is the SPECIFIC root cause? What SPECIFIC change
         # Inspired by SWE-bench: "tests pass" IS the verification — no separate DoD layer.
         individual_tests = {}  # {"test_create_project": True, "test_delete_task": False}
         for tf_name, tf_result in per_file_results.items():
-            output: str = str(tf_result.get("output", ""))
+            output: str = str(tf_result.get("output", ""))  # type: ignore[no-redef]
             # Parse pytest -v output: "test_app.py::test_create_project PASSED"
             for match in re_mod.finditer(r'(\w+::|^)(test_\w+)\s+(PASSED|FAILED|ERROR)', output, re_mod.MULTILINE):
                 func_name = match.group(2)
@@ -4177,16 +4177,16 @@ Perform a 5 Whys analysis. What is the SPECIFIC root cause? What SPECIFIC change
                         matched_file = tf.name
                         break
                 if matched_file and matched_file in per_file_results:
-                    file_result = per_file_results[matched_file]
-                    criterion.passed = bool(file_result["passed"])
-                    criterion.evidence = str(file_result["output"])[:500]
+                    file_result = per_file_results[matched_file]  # type: ignore[assignment]
+                    criterion.passed = bool(file_result["passed"])  # type: ignore[index]
+                    criterion.evidence = str(file_result["output"])[:500]  # type: ignore[index]
                     test_report[cid] = {"passed": criterion.passed, "evidence": criterion.evidence, "command": f"pytest {matched_file}"}
                     if criterion.passed:
                         logger.info(f"DoD {cid} PASSED: {criterion.description[:60]}")
                         all_evidence.append(f"{cid}: PASSED -- {matched_file} tests pass")
                     else:
                         logger.warning(f"DoD {cid} FAILED: {criterion.description[:60]}")
-                        fail_tail = self._extract_test_error_tail(str(file_result['output']))
+                        fail_tail = self._extract_test_error_tail(str(file_result['output']))  # type: ignore[index]
                         all_evidence.append(f"{cid}: FAILED -- {matched_file}: {fail_tail}")
                     was_mapped = True
 

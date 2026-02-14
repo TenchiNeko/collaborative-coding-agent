@@ -15,7 +15,7 @@ Tables 1-2 remain managed by the existing kb_store.py system.
 import sqlite3
 import json
 import logging
-from typing import List, Dict
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
