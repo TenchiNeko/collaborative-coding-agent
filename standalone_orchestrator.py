@@ -1080,6 +1080,49 @@ class Orchestrator:
 
         return {"exists": True, "status": "OK", "exports": exports}
 
+
+    @staticmethod
+    def _find_safe_import_line(source: str) -> int:
+        """Find the 0-indexed line number after the last top-level import.
+        
+        v1.1: AST-guarded import insertion. Fixes the bug where imports
+        inside try/except, functions, or if blocks were treated as
+        insertion points, causing SyntaxError when new imports were
+        injected inside those blocks.
+        
+        Uses ast.parse() to identify only module-level imports.
+        Falls back to indentation-aware line scanning if parsing fails.
+        
+        Returns: 0-indexed line number where a new import should be inserted.
+        """
+        import ast as _ast
+        # Strategy 1: AST-based (reliable)
+        try:
+            tree = _ast.parse(source)
+            last_import_line = 0
+            for node in _ast.iter_child_nodes(tree):
+                if isinstance(node, (_ast.Import, _ast.ImportFrom)):
+                    end = getattr(node, 'end_lineno', node.lineno)
+                    last_import_line = max(last_import_line, end)
+                elif isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef, _ast.ClassDef)):
+                    break  # Imports are above first function/class
+            return last_import_line
+        except SyntaxError:
+            pass
+        
+        # Strategy 2: Indentation-aware scan (fallback for broken files)
+        lines = source.split('\n')
+        last_toplevel_import = 0
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if (stripped.startswith('import ') or stripped.startswith('from ')) and \
+               (line.startswith('import ') or line.startswith('from ')):
+                last_toplevel_import = i + 1
+            elif stripped and not stripped.startswith('#') and not stripped.startswith(chr(34)*3) \
+                 and not stripped.startswith(chr(39)*3) and last_toplevel_import > 0:
+                break
+        return last_toplevel_import
+
     def _auto_fix_imports(self, filepath: Path, error_output: str) -> bool:
         """
         v0.7.0 Import Hygiene: Auto-fix common missing imports in test files.
@@ -1122,15 +1165,9 @@ class Orchestrator:
                     # Check if import already exists (might be wrong form)
                     module_name = import_line.split()[-1]
                     if import_line not in content:
-                        # Add import at the top (after any existing imports)
+                        # v1.1: AST-guarded import insertion
                         lines = content.split('\n')
-                        insert_idx = 0
-                        for i, line in enumerate(lines):
-                            if line.startswith(('import ', 'from ')):
-                                insert_idx = i + 1
-                            elif line.strip() and not line.startswith('#') and insert_idx > 0:
-                                break
-
+                        insert_idx = self._find_safe_import_line(content)
                         lines.insert(insert_idx, import_line)
                         content = '\n'.join(lines)
                         fixed = True
@@ -1199,15 +1236,9 @@ class Orchestrator:
                 if found_in:
                     import_line = f"from {found_in} import {missing_name}"
                     if import_line not in content:
-                        # Insert after existing imports
+                        # v1.1: AST-guarded import insertion
                         lines = content.split('\n')
-                        insert_idx = 0
-                        for i, line in enumerate(lines):
-                            if line.startswith(('import ', 'from ')):
-                                insert_idx = i + 1
-                            elif line.strip() and not line.startswith('#') and insert_idx > 0:
-                                break
-
+                        insert_idx = self._find_safe_import_line(content)
                         lines.insert(insert_idx, import_line)
                         content = '\n'.join(lines)
                         fixed = True
@@ -1949,12 +1980,8 @@ Use write_file to create {filename}.
                 )
                 # Insert after the import lines
                 lines = content.split('\n')
-                insert_idx = 0
-                for i, line in enumerate(lines):
-                    if line.startswith('import ') or line.startswith('from '):
-                        insert_idx = i + 1
-                    elif line.strip() and insert_idx > 0:
-                        break
+                # v1.1: AST-guarded insertion
+                insert_idx = self._find_safe_import_line(content)
                 lines.insert(insert_idx, fixture_code)
                 test_path.write_text('\n'.join(lines))
                 logger.info(f"    Injected Flask client fixture into {test_path.name}")
@@ -2466,35 +2493,8 @@ Use write_file to create {filename}.
 
         # 4. Inject imports at the top of the file (after any existing imports or docstrings)
         lines = source.split('\n')
-        insert_pos = 0
-
-        # Skip shebang, encoding declarations, and docstrings
-        for idx, line in enumerate(lines):
-            stripped = line.strip()
-            if stripped.startswith('#') or stripped.startswith('"""') or stripped.startswith("'''"):
-                insert_pos = idx + 1
-                # Handle multi-line docstrings
-                if stripped.startswith('"""') and stripped.count('"""') == 1:
-                    for j in range(idx + 1, len(lines)):
-                        if '"""' in lines[j]:
-                            insert_pos = j + 1
-                            break
-                elif stripped.startswith("'''") and stripped.count("'''") == 1:
-                    for j in range(idx + 1, len(lines)):
-                        if "'''" in lines[j]:
-                            insert_pos = j + 1
-                            break
-            elif stripped.startswith('import ') or stripped.startswith('from '):
-                insert_pos = idx + 1  # Insert after last existing import
-            elif stripped and not stripped.startswith('#'):
-                break  # Hit actual code — stop looking
-
-        # Find the true last import line
-        for idx in range(len(lines) - 1, -1, -1):
-            stripped = lines[idx].strip()
-            if stripped.startswith('import ') or stripped.startswith('from '):
-                insert_pos = idx + 1
-                break
+        # v1.1: AST-guarded import insertion
+        insert_pos = self._find_safe_import_line(source)
 
         # Insert the missing imports
         import_block = '\n'.join(injected)
@@ -2765,22 +2765,8 @@ Use write_file to create {filename}.
                 source = filepath.read_text()
                 lines = source.split('\n')
 
-                # Find insertion point (after last import)
-                insert_pos = 0
-                for idx, line in enumerate(lines):
-                    stripped = line.strip()
-                    if stripped.startswith('import ') or stripped.startswith('from '):
-                        insert_pos = idx + 1
-                    elif stripped and not stripped.startswith('#') and not stripped.startswith('"""') and not stripped.startswith("'''") and insert_pos > 0:
-                        break
-
-                # Also check from the end for the true last import
-                for idx in range(len(lines) - 1, -1, -1):
-                    stripped = lines[idx].strip()
-                    if stripped.startswith('import ') or stripped.startswith('from '):
-                        insert_pos = max(insert_pos, idx + 1)
-                        break
-
+                # v1.1: AST-guarded import insertion
+                insert_pos = self._find_safe_import_line(source)
                 import_block = '\n'.join(injected_imports)
                 lines.insert(insert_pos, import_block)
                 filepath.write_text('\n'.join(lines))
@@ -2886,17 +2872,8 @@ Use write_file to create {filename}.
 
                 if final_imports:
                     lines = source.split('\n')
-                    insert_pos = 0
-                    for idx, line in enumerate(lines):
-                        stripped = line.strip()
-                        if stripped.startswith('import ') or stripped.startswith('from '):
-                            insert_pos = idx + 1
-                    for idx in range(len(lines) - 1, -1, -1):
-                        stripped = lines[idx].strip()
-                        if stripped.startswith('import ') or stripped.startswith('from '):
-                            insert_pos = max(insert_pos, idx + 1)
-                            break
-
+                    # v1.1: AST-guarded import insertion
+                    insert_pos = self._find_safe_import_line(source)
                     import_block = '\n'.join(final_imports)
                     lines.insert(insert_pos, import_block)
                     filepath.write_text('\n'.join(lines))
@@ -3220,6 +3197,7 @@ Use write_file to create {filename}.
         best_line_count = best_content.count('\n') + 1 if best_content else 0
         use_edit_repair = (best_score > 0 and best_content and collected_errors
                           and best_line_count > 80)
+        total_edits_applied = 0  # v1.1: track across all edit rounds
         if best_score > 0 and best_content and not use_edit_repair and collected_errors:
             logger.info(f"  📝 Small file ({best_line_count} lines) — skipping edit repair, using Wave 2 regen")
         if use_edit_repair:
@@ -3241,6 +3219,8 @@ Use write_file to create {filename}.
                     except Exception:
                         pass
 
+            # v1.1: Track total edits applied to detect complete failure
+            total_edits_applied = 0
             for edit_round in range(3):
                 current_content = filepath.read_text()
                 test_result_edit = self._run_test_file(filename, tests_for)
@@ -3299,13 +3279,18 @@ Use write_file to create {filename}.
                         # v0.9.9: Store feedback for next edit round (Aider-style)
                         task_state.edit_feedback.extend(edit_feedback)
                         logger.info(f"    🔍 Edit round {edit_round + 1}: {len(edit_feedback)} match failures logged for retry")
-                        # Don't break — let the next round use the feedback
+                        # v1.1: For small files (<300 lines), don't waste rounds on
+                        # feedback — full-file regen is more reliable (Cursor research)
+                        if best_line_count < 300 and edit_round == 0:
+                            logger.info(f"    📐 Small file ({best_line_count} lines) — skipping to Wave 2 regen")
+                            break
                         continue
                     logger.info(f"    ❌ Edit round {edit_round + 1}: no edits matched — trying full regen fallback")
                     break
                 else:
                     # Clear feedback on successful edits
                     task_state.edit_feedback = []
+                    total_edits_applied += num_applied
 
                 # v0.9.7: Auto-fix imports after edits
                 self._auto_fix_imports_precheck(filepath)
@@ -3338,8 +3323,10 @@ Use write_file to create {filename}.
 
         # === WAVE 2 FALLBACK: Full regeneration (only if edit repair failed or 0/N) ===
         # v1.0: Also run Wave 2 for small files that skipped edit repair
+        # v1.1: Also run Wave 2 when edit repair applied 0 total edits (all SEARCH blocks failed)
         needs_wave2 = (best_score <= 0 and collected_errors) or (
-            not use_edit_repair and best_score > 0 and collected_errors)
+            not use_edit_repair and best_score > 0 and collected_errors) or (
+            use_edit_repair and total_edits_applied == 0 and collected_errors)
         if needs_wave2:
             logger.info(f"  🔬 Wave 2: error-aware re-sampling for {filename}")
 

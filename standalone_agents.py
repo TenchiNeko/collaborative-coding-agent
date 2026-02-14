@@ -2859,6 +2859,14 @@ Produce SEARCH/REPLACE edits to fix the failing tests.
             search_text = search_part.strip('\n\r')
             replace_text = replace_part.strip('\n\r')
 
+            # v1.1: Strip hashline tags if model included them
+            # (Model sees "  3:f1| from flask import g" and copies tags into SEARCH)
+            import re as _re
+            if _re.search(r'^\s*\d+:[0-9a-f]{2}\| ', search_text, _re.MULTILINE):
+                search_text = AgentRunner.strip_hashline_tags(search_text)
+            if _re.search(r'^\s*\d+:[0-9a-f]{2}\| ', replace_text, _re.MULTILINE):
+                replace_text = AgentRunner.strip_hashline_tags(replace_text)
+
             if search_text:  # Don't add empty searches
                 blocks.append((search_text, replace_text))
 
@@ -2875,7 +2883,7 @@ Produce SEARCH/REPLACE edits to fix the failing tests.
         Matching layers (tried in order):
         1. Exact match
         2. Trailing-whitespace-stripped match
-        3. difflib.SequenceMatcher fuzzy match (≥0.85 similarity)
+        3. difflib.SequenceMatcher fuzzy match (≥0.78 similarity)
         4. Content-stripped match (ignore all leading whitespace)
         5. Partial-line match (for single-line edits)
 
@@ -2972,8 +2980,9 @@ Produce SEARCH/REPLACE edits to fix the failing tests.
                         best_ratio = ratio
                         best_start = i
 
-                # Accept if similarity ≥ 0.85 (v0.9.9a: raised from 0.7 — too aggressive)
-                if best_ratio >= 0.85 and best_start >= 0:
+                # Accept if similarity ≥ 0.78 (v1.1: lowered from 0.85 — with tag stripping
+                # and syntax rollback, we can afford to be more permissive)
+                if best_ratio >= 0.78 and best_start >= 0:
                     # v0.9.9b: Preserve relative indentation (not flat)
                     indented_replace = _indent_replace(replace_text, content_lines[best_start])
 
@@ -3021,7 +3030,7 @@ Produce SEARCH/REPLACE edits to fix the failing tests.
                         best_line_ratio = ratio
                         best_line_idx = i
 
-                if best_line_ratio >= 0.85 and best_line_idx >= 0:
+                if best_line_ratio >= 0.78 and best_line_idx >= 0:
                     # v0.9.9b: relative indent for single-line replacement
                     indented_lines = _indent_replace(replace_text, content_lines[best_line_idx])
                     content_lines[best_line_idx:best_line_idx + 1] = indented_lines
