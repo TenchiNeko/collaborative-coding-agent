@@ -1,0 +1,11 @@
+*.db
+__pycache__/
+venv/
+*.pyc
+.agents/
+playbook.json
+*.pre-v*
+*.tar.gz
+apply_v*.py
+*2-12.py
+1.py
