@@ -1088,6 +1088,7 @@ class LLMClient:
             "options": {
                 "temperature": temperature if temperature is not None else self.config.temperature,
                 "num_predict": self.config.max_tokens,
+                "num_ctx": self.config.context_window,  # v1.1c: was missing — Ollama defaulted to 2048
             }
         }
 
@@ -1128,6 +1129,7 @@ class LLMClient:
             "options": {
                 "temperature": temperature if temperature is not None else self.config.temperature,
                 "num_predict": self.config.max_tokens,
+                "num_ctx": self.config.context_window,  # v1.1c: was missing — Ollama defaulted to 2048
             }
         }
 
