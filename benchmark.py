@@ -165,8 +165,19 @@ def run_task(task_id: int, base_dir: str = "/tmp/bench", max_iterations: int = 3
         result.error = f"Exceeded {timeout}s timeout"
         result.duration_seconds = timeout
         result.finished_at = datetime.now().isoformat()
-        # v1.1: Capture partial output for debugging (was lost before)
-        partial = (e.stdout or "") + (e.stderr or "") if hasattr(e, 'stdout') else ""
+        # v1.1/v1.2fix: Capture partial output for debugging
+        # e.stdout/e.stderr are bytes (not str) even with text=True
+        partial = ""
+        try:
+            raw_out = e.stdout or b""
+            raw_err = e.stderr or b""
+            if isinstance(raw_out, bytes):
+                raw_out = raw_out.decode("utf-8", errors="replace")
+            if isinstance(raw_err, bytes):
+                raw_err = raw_err.decode("utf-8", errors="replace")
+            partial = raw_out + raw_err
+        except Exception:
+            partial = ""
         if partial:
             log_file = f"{base_dir}/task{task_id}_{timestamp}.log"
             Path(log_file).parent.mkdir(parents=True, exist_ok=True)
@@ -291,7 +302,7 @@ def main():
                         help="Run a predefined suite")
     parser.add_argument("--list", action="store_true", help="List available tasks")
     parser.add_argument("--max-iterations", type=int, default=3)
-    parser.add_argument("--timeout", type=int, default=7200, help="Per-task timeout in seconds")
+    parser.add_argument("--timeout", type=int, default=10800, help="Per-task timeout in seconds (default 3h)")
     parser.add_argument("--output", default="benchmark_results.json")
     args = parser.parse_args()
 
