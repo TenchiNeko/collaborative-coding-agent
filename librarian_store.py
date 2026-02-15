@@ -15,7 +15,7 @@ Tables 1-2 remain managed by the existing kb_store.py system.
 import sqlite3
 import json
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -210,7 +210,7 @@ def search_journal(
     domain: Optional[str] = None,
     limit: int = 5,
     db_path: str = DEFAULT_DB_PATH,
-) -> List[Dict]:
+) -> List[Dict[str, Any]]:
     """Search journal entries via FTS5."""
     conn = get_db(db_path)
 
@@ -289,7 +289,7 @@ def search_snippets(
     domain: Optional[str] = None,
     limit: int = 3,
     db_path: str = DEFAULT_DB_PATH,
-) -> List[Dict]:
+) -> List[Dict[str, Any]]:
     """Search snippets via FTS5."""
     conn = get_db(db_path)
 
@@ -436,7 +436,7 @@ def chunk_python_ast(
     filename: str = "",
     max_chunk_lines: int = 80,
     min_chunk_lines: int = 5,
-) -> List[Dict]:
+) -> List[Dict[str, Any]]:
     """
     Parse Python source into AST-aware chunks.
 
@@ -639,11 +639,11 @@ def chunk_python_ast(
     merged = []
     buffer = None
     for chunk in chunks:
-        chunk_lines = int(chunk.get("line_end", 0)) - int(chunk.get("line_start", 0)) + 1
+        chunk_lines = chunk.get("line_end", 0) - chunk.get("line_start", 0) + 1
         # Only merge module_code chunks — keep functions/classes/methods separate
         if chunk["type"] == "module_code" and chunk_lines < min_chunk_lines:
             if buffer is not None and buffer["type"] == "module_code":
-                buffer_lines = int(buffer.get("line_end", 0)) - int(buffer.get("line_start", 0)) + 1
+                buffer_lines = buffer.get("line_end", 0) - buffer.get("line_start", 0) + 1
                 if buffer_lines + chunk_lines <= max_chunk_lines:
                     buffer["name"] += f" + {chunk['name']}"
                     buffer["code"] += f"\n\n{chunk['code']}"
