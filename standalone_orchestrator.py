@@ -2800,6 +2800,13 @@ Use write_file to create {filename}.
                     # Don't import from self
                     if src_module == this_module:
                         continue
+                    # v1.1c: NEVER import from test files into source files
+                    # This caused circular imports (e.g., from test_auth import db in auth.py)
+                    src_is_test = src_module.split('.')[-1].startswith('test_')
+                    this_is_test = this_module.split('.')[-1].startswith('test_')
+                    if src_is_test and not this_is_test:
+                        logger.debug(f"    ⛔ Blocked cross-import: {filename} ← {src_module}.{name} (test→source)")
+                        continue
                     # Use simple module name if possible
                     simple = src_module.split('.')[-1] if '.' in src_module else src_module
                     import_line = f"from {simple} import {name}"
