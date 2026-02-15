@@ -39,9 +39,9 @@ Five tasks of increasing difficulty, from simple single-class to complex multi-f
 | Miniqueue | 3 | ✅ Pass | 20/20 (100%) | 1 | 11m |
 | Task Tracker CLI | 4 | ✅ Pass | 38/38 (100%) | 3 | 21m |
 | Bookmark Manager API | 5 | ✅ Pass | 70/78 (90%) | 2 | 29m |
-| Expense Tracker + Auth | 6 | ⏰ Timeout | — | — | >2h |
+| Expense Tracker + Auth | 6 | ✅ Pass | 145/159 (91%) | 3 | 170m |
 
-**Overall: 4/5 tasks passing. 133/141 tests (94%) across passing tasks.**
+**Overall: 5/5 tasks passing. 278/300 tests (93%) across all tasks.**
 
 ### Key Observations
 
@@ -51,7 +51,7 @@ Five tasks of increasing difficulty, from simple single-class to complex multi-f
 
 **Task 4 (Level 5):** 2 iterations, 70/78 tests. The remaining 8 tests are edge cases in `test_app.py` (Flask integration). RCA identified and fixed the dual-DB pattern (`:memory:` per-connection issue).
 
-**Task 5 (Level 6):** Timed out at 2h. This task has 5 source files + 5 test files with JWT auth, bcrypt, budget limits, CSV export, and complex edge cases. Timeout bumped to 3h for re-run.
+**Task 5 (Level 6):** The hardest task — 5 source files + 5 test files with JWT auth, bcrypt, budget limits, CSV export, and complex edge cases. Passed in 3 iterations (170 minutes) with 145/159 tests (91%). Required the full retry budget but RCA successfully identified and fixed issues across iterations. 6/8 source files passed on first candidate.
 
 ---
 
@@ -137,7 +137,7 @@ v0.9.9a  ████████████████  41/43  (95%)  — red
 v0.9.9b  ██████████░░░░░░  46/70  (66%)
 v1.0     █████████████░░░  66/79  (84%)
 v1.0c    ████████████████  64/65  (98%)
-v1.2     ████████████████  133/141 (94%) — across 4 tasks (Levels 2-5)
+v1.2     ████████████████  278/300 (93%) — 5/5 tasks (Levels 2-6)
 ```
 
 ---
@@ -151,7 +151,7 @@ v1.2     ████████████████  133/141 (94%) — acr
 | 3 | Multi-file, known patterns | Miniqueue | ✅ 20/20, 1 iter |
 | 4 | Inter-module state, file I/O | Task tracker CLI | ✅ 38/38, 3 iter |
 | 5 | REST API + database + validation | Bookmark manager | ✅ 70/78, 2 iter |
-| 6 | Complex business logic, auth, edge cases | Expense tracker with JWT | ⏰ Re-running |
+| 6 | Complex business logic, auth, edge cases | Expense tracker with JWT | ✅ 145/159, 3 iter |
 | 7 | Async, state machines, protocols | Chat server with WebSocket | 🔲 Future |
 | 8+ | Concurrency, distributed systems | Job scheduler, CRDT editor | 🔲 Future |
 

@@ -4,7 +4,7 @@
 
 Core autonomous coding loop fully operational: EXPLORE → PLAN → BUILD → TEST → RCA → RETRY
 
-**Benchmark: 4/5 tasks passing (Levels 2-5), 133/141 tests (94%)**
+**Benchmark: 5/5 tasks passing (Levels 2-6), 278/300 tests (93%)**
 
 ### v1.2 Features
 - Grammar-constrained structured output for edit repair (JSON schema, 100% well-formed)
@@ -43,12 +43,12 @@ Core autonomous coding loop fully operational: EXPLORE → PLAN → BUILD → TE
 
 ---
 
-## Immediate: v1.3 — Level 6 + Performance
+## Immediate: v1.3 — Level 7 + Performance
 
-### Beat the Level 6 benchmark
-- [ ] **Task 5 completion** — Expense Tracker with JWT auth, budget limits, CSV export
-  Currently timing out at 2h. Need to profile where time is spent and optimize.
-- [ ] **Build phase profiling** — measure time per agent call, identify bottlenecks
+### Level 7 benchmark
+- [x] ~~**Task 5 (Level 6)**~~ — ✅ Passed: 145/159 tests, 3 iterations, 170m
+- [ ] **Design Level 7 task** — async/WebSocket, state machines, or protocol implementation
+- [ ] **Build phase profiling** — measure time per agent call, identify bottlenecks (Task 5 took 170m)
 - [ ] **Parallel candidate sampling** — sample multiple candidates concurrently (currently sequential)
 - [ ] **Smarter retry targeting** — only rebuild files that actually failed, not all dependents
 
@@ -60,7 +60,7 @@ Core autonomous coding loop fully operational: EXPLORE → PLAN → BUILD → TE
 ### Testing & reliability
 - [ ] **End-to-end benchmark CI** — run Level 2 benchmark on every push (smoke test)
 - [ ] **Structured output for all agents** — extend JSON schema approach beyond edit repair
-- [ ] **Better timeout handling** — per-agent timeouts, not just per-task
+- [ ] **Per-agent timeouts** — individual timeout per agent call, not just per-task
 
 ---
 

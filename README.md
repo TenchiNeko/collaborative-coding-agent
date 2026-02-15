@@ -31,10 +31,10 @@ Task 1: Calculator (Level 2)            → ✅ PASS  5/5 tests,   1 iter, 21m
 Task 2: Miniqueue (Level 3)             → ✅ PASS  20/20 tests, 1 iter, 11m
 Task 3: Task Tracker CLI (Level 4)      → ✅ PASS  38/38 tests, 3 iter, 21m
 Task 4: Bookmark Manager API (Level 5)  → ✅ PASS  70/78 tests, 2 iter, 29m
-Task 5: Expense Tracker + Auth (Level 6) → ⏰ timeout at 2h (re-running with 3h)
+Task 5: Expense Tracker + Auth (Level 6) → ✅ PASS  145/159 tests, 3 iter, 170m
 ```
 
-4/5 tasks passing. The system handles everything from simple classes to multi-file REST APIs with database, validation, and pagination — fully autonomously on local hardware.
+5/5 tasks passing — 278/300 tests (93%). The system handles everything from simple classes to complex multi-file REST APIs with JWT auth, budget limits, and CSV export — fully autonomously on local hardware.
 
 ```
 Task: "Build a task tracker CLI with JSON persistence..."
